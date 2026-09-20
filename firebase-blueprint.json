@@ -1,0 +1,142 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Institutional identity record for scholars, faculty, and executives.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Unique institutional ID" },
+        "role": { "type": "string", "enum": ["ADMIN", "TEACHER", "STUDENT", "STAFF"] },
+        "status": { "type": "string", "enum": ["ACTIVE", "DISABLED"] },
+        "name": { "type": "string", "description": "Full legal name" },
+        "email": { "type": "string", "description": "Official institutional email" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "courseId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "semester": { "type": "number" },
+        "section": { "type": "string" },
+        "registrationNo": { "type": "string" },
+        "deptId": { "type": "string" },
+        "designation": { "type": "string" },
+        "roleDescription": { "type": "string" }
+      },
+      "required": ["userId", "role", "name", "email", "status"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Daily attendance records for scholars.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "attDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["PRESENT", "ABSENT"] },
+        "remarks": { "type": "string" }
+      },
+      "required": ["studentId", "subjectId", "attDate", "status"]
+    },
+    "Marks": {
+      "title": "Marks",
+      "description": "Academic performance records.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "examType": { "type": "string" },
+        "maxMarks": { "type": "number" },
+        "obtainedMarks": { "type": "number" },
+        "teacherId": { "type": "string" },
+        "examDate": { "type": "string", "format": "date" }
+      },
+      "required": ["studentId", "subjectId", "examType", "maxMarks", "obtainedMarks"]
+    },
+    "Timetable": {
+      "title": "Timetable",
+      "description": "Instructional schedule for courses.",
+      "type": "object",
+      "properties": {
+        "dayOfWeek": { "type": "string" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "roomNo": { "type": "string" },
+        "courseId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "semester": { "type": "number" },
+        "section": { "type": "string" }
+      },
+      "required": ["dayOfWeek", "startTime", "endTime", "subjectName", "courseId", "branchId", "semester", "section"]
+    },
+    "CalendarEvent": {
+      "title": "Calendar Event",
+      "description": "Institutional milestones and events.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["IMPORTANT", "EXAM", "HOLIDAY", "EVENT"] },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "description": { "type": "string" }
+      },
+      "required": ["title", "type", "startDate", "endDate"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "University-wide notifications.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "targetRole": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "targetRole", "createdAt"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "Course and instruction feedback.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comments": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["subjectId", "rating", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Primary identity registry."
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "Attendance",
+      "description": "Attendance tracking collection."
+    },
+    "/marks/{marksId}": {
+      "schema": "Marks",
+      "description": "Academic records collection."
+    },
+    "/timetable/{slotId}": {
+      "schema": "Timetable",
+      "description": "Master instructional schedule."
+    },
+    "/calendar/{eventId}": {
+      "schema": "CalendarEvent",
+      "description": "Institutional milestones registry."
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Official communication log."
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "Scholarly feedback repository."
+    }
+  }
+}

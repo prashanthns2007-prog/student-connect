@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Master Catch-All Deny ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitives & Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // RBAC Helpers
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function hasRole(role) {
+      return isSignedIn() && getUserData().role == role;
+    }
+    function isAdmin() { return hasRole('ADMIN'); }
+    function isTeacher() { return hasRole('TEACHER'); }
+    function isStudent() { return hasRole('STUDENT'); }
+    function isStaff() { return hasRole('STAFF'); }
+
+    // --- Entity Validations ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['userId', 'role', 'name', 'email', 'status']) &&
+             data.keys().hasOnly(['userId', 'role', 'name', 'email', 'status', 'createdAt', 'courseId', 'branchId', 'semester', 'section', 'registrationNo', 'deptId', 'designation', 'roleDescription']) &&
+             data.userId == request.auth.uid &&
+             data.role in ['ADMIN', 'TEACHER', 'STUDENT', 'STAFF'] &&
+             data.status in ['ACTIVE', 'DISABLED'] &&
+             data.name is string && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 100;
+    }
+
+    function isValidAttendance(data) {
+      return data.keys().hasAll(['studentId', 'subjectId', 'attDate', 'status']) &&
+             data.studentId is string && data.subjectId is string &&
+             data.status in ['PRESENT', 'ABSENT'];
+    }
+
+    function isValidMarks(data) {
+      return data.keys().hasAll(['studentId', 'subjectId', 'examType', 'maxMarks', 'obtainedMarks']) &&
+             data.maxMarks is number && data.obtainedMarks is number;
+    }
+
+    // --- Collection Rules ---
+
+    // Users: Identity Registry
+    match /users/{userId} {
+      allow get: if true; // Allow initial profile fetch for local mapping
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && userId == request.auth.uid && isValidUser(incoming());
+      allow update: if (isAdmin() || (request.auth.uid == userId && incoming().role == existing().role)) && isValidUser(incoming());
+    }
+
+    // Attendance: Scholars tracking
+    match /attendance/{attendanceId} {
+      allow get: if isSignedIn() && (getUserData().userId == existing().studentId || isTeacher() || isAdmin());
+      allow list: if true; // Allow list and rely on where() filters if necessary, or harden if auth is active
+      allow create: if isTeacher() && isValidAttendance(incoming());
+      allow update: if (isTeacher() || isAdmin()) && isValidAttendance(incoming());
+    }
+
+    // Marks: Academic Records
+    match /marks/{marksId} {
+      allow get: if isSignedIn() && (getUserData().userId == existing().studentId || isTeacher() || isAdmin());
+      allow list: if true;
+      allow create: if isTeacher() && isValidMarks(incoming());
+      allow update: if (isTeacher() || isAdmin()) && isValidMarks(incoming());
+    }
+
+    // Timetable: Instructional Schedule
+    match /timetable/{slotId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Calendar: Institutional Milestones
+    match /calendar/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Announcements: Official Communication
+    match /announcements/{announcementId} {
+      allow read: if true; // Public scholarly notices
+      allow create: if isAdmin();
+    }
+
+    // Feedback: Scholarly Input
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin() || isStaff();
+      allow create: if isStudent() && incoming().studentId == request.auth.uid;
+    }
+  }
+}
